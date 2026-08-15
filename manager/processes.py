@@ -32,9 +32,11 @@ class ProcessManager:
         if destination.exists():
             shutil.rmtree(destination)
 
+        package_destination = destination / "Tepthon"
+
         shutil.copytree(
             self.template,
-            destination,
+            package_destination,
         )
 
         return destination
@@ -68,13 +70,20 @@ class ProcessManager:
                 f"Account directory does not exist: {directory}"
             )
 
-        main_file = directory / "main.py"
+        # Tepthon package داخل مجلد الحساب
+        package = directory / "Tepthon"
 
-        if not main_file.is_file():
+        if not package.is_dir():
             raise RuntimeError(
-                f"main.py غير موجود داخل: {directory}"
+                f"Tepthon package غير موجود داخل: {package}"
             )
 
+        if not (package / "__main__.py").is_file():
+            raise RuntimeError(
+                f"__main__.py غير موجود داخل: {package}"
+            )
+
+        # البحث عن Session داخل مجلد الحساب
         session_file = self.find_session(directory)
 
         if session_file is None:
@@ -83,6 +92,7 @@ class ProcessManager:
                 "سجّل الدخول أولاً من المصنع."
             )
 
+        # إيقاف النسخة القديمة
         self.stop(install_id)
 
         env = os.environ.copy()
@@ -95,6 +105,7 @@ class ProcessManager:
             directory.absolute()
         )
 
+        # Python يجب أن يرى مجلد الحساب الذي يحتوي Tepthon/
         env["PYTHONPATH"] = (
             str(directory.absolute())
             + os.pathsep
@@ -108,22 +119,16 @@ class ProcessManager:
         env["SESSION"] = session_path
         env["TEPTHON_SESSION"] = session_path
 
-        api_id = os.getenv("API_ID", "")
-        api_hash = os.getenv("API_HASH", "")
-        bot_token = os.getenv("BOT_TOKEN", "")
-        owner_id = os.getenv("OWNER_ID", "")
-
-        if api_id:
-            env["API_ID"] = api_id
-
-        if api_hash:
-            env["API_HASH"] = api_hash
-
-        if bot_token:
-            env["BOT_TOKEN"] = bot_token
-
-        if owner_id:
-            env["OWNER_ID"] = owner_id
+        # إعدادات Tepthon
+        for key in (
+            "API_ID",
+            "API_HASH",
+            "BOT_TOKEN",
+            "OWNER_ID",
+        ):
+            value = os.getenv(key, "")
+            if value:
+                env[key] = value
 
         env["REDISHOST"] = os.getenv(
             "REDISHOST",
@@ -135,8 +140,10 @@ class ProcessManager:
             "6379",
         )
 
+        # لا نسمح لنسخة Tepthon بأخذ PORT
         env.pop("PORT", None)
 
+        # سجل خاص بكل تنصيب
         log_path = directory / "factory.log"
 
         log_file = open(
@@ -150,18 +157,20 @@ class ProcessManager:
             "========================================\n"
             f"FACTORY INSTALL ID: {install_id}\n"
             f"ACCOUNT DIR: {directory.absolute()}\n"
+            f"TEPTHON DIR: {package.absolute()}\n"
             f"SESSION: {session_path}\n"
-            f"MAIN: {main_file.absolute()}\n"
             "========================================\n"
         )
 
         log_file.flush()
 
+        # تشغيل Tepthon كـ Python package
         process = subprocess.Popen(
             [
                 sys.executable,
                 "-u",
-                str(main_file),
+                "-m",
+                "Tepthon",
             ],
             cwd=directory,
             env=env,
