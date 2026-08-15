@@ -107,6 +107,12 @@ class ProcessManager:
             directory.absolute()
         )
 
+        # Tepthon package موجود داخل مجلد التنصيب
+        # لذلك نضيف المجلد الأب إلى PYTHONPATH
+        env["PYTHONPATH"] = str(
+            directory.parent.absolute()
+        )
+
         # Session الخاصة بالحساب
         session_path = str(
             session_file.absolute()
@@ -169,25 +175,16 @@ class ProcessManager:
 
         log_file.flush()
 
+        # تشغيل Tepthon كـ package
+        # لأن __main__.py يستخدم relative imports
         process = subprocess.Popen(
             [
                 sys.executable,
-                "-c",
-                (
-                    "import sys,types,importlib.util;"
-                    "p='.';"
-                    "m=types.ModuleType('Tepthon');"
-                    "m.__path__=[p];"
-                    "m.__package__='Tepthon';"
-                    "sys.modules['Tepthon']=m;"
-                    "spec=importlib.util.spec_from_file_location("
-                    "'Tepthon.__main__','__main__.py');"
-                    "mod=importlib.util.module_from_spec(spec);"
-                    "sys.modules['Tepthon.__main__']=mod;"
-                    "spec.loader.exec_module(mod)"
-                ),
+                "-u",
+                "-m",
+                "Tepthon",
             ],
-            cwd=directory,
+            cwd=directory.parent,
             env=env,
             stdout=log_file,
             stderr=subprocess.STDOUT,
