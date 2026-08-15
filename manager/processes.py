@@ -76,16 +76,12 @@ class ProcessManager:
                 f"Account directory does not exist: {directory}"
             )
 
-        package = directory / "Tepthon"
-
-        if not package.exists():
-            raise RuntimeError(
-                f"Tepthon package not found: {package}"
-            )
+        # Tepthon يتم نسخه مباشرة داخل مجلد التنصيب
+        package = directory
 
         if not (package / "__main__.py").exists():
             raise RuntimeError(
-                "__main__.py غير موجود داخل Tepthon."
+                f"__main__.py غير موجود داخل: {package}"
             )
 
         # البحث عن Session الخاصة بهذا التنصيب
