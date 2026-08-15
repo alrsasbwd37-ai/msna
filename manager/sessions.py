@@ -325,3 +325,14 @@ class SessionManager:
                     await client.disconnect()
                 except Exception:
                     pass
+
+    async def close(self):
+        for phone, client in list(self.clients.items()):
+            try:
+                if client.is_connected():
+                    await client.disconnect()
+            except Exception:
+                pass
+
+        self.clients.clear()
+        self.phone_hashes.clear()
