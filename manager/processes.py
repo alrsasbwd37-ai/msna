@@ -173,8 +173,7 @@ class ProcessManager:
             [
                 sys.executable,
                 "-u",
-                "-m",
-                "Tepthon",
+                "__main__.py",
             ],
             cwd=directory,
             env=env,
