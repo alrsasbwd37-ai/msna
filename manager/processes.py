@@ -40,23 +40,15 @@ class ProcessManager:
         return destination
 
     def find_session(self, directory):
-        """
-        البحث عن ملف Telethon SQLite Session
-        داخل مجلد الحساب بالكامل.
-        """
-
-        # الاسم الأساسي المتوقع
         preferred = directory / "session.session"
 
         if preferred.is_file():
             return preferred
 
-        # البحث داخل الحساب
         candidates = sorted(
             directory.rglob("*.session")
         )
 
-        # استبعاد أي ملفات غير صالحة
         candidates = [
             path
             for path in candidates
@@ -76,15 +68,13 @@ class ProcessManager:
                 f"Account directory does not exist: {directory}"
             )
 
-        # Tepthon يتم نسخه مباشرة داخل مجلد التنصيب
-        package = directory
+        main_file = directory / "main.py"
 
-        if not (package / "__main__.py").exists():
+        if not main_file.is_file():
             raise RuntimeError(
-                f"__main__.py غير موجود داخل: {package}"
+                f"main.py غير موجود داخل: {directory}"
             )
 
-        # البحث عن Session الخاصة بهذا التنصيب
         session_file = self.find_session(directory)
 
         if session_file is None:
@@ -93,12 +83,10 @@ class ProcessManager:
                 "سجّل الدخول أولاً من المصنع."
             )
 
-        # إيقاف النسخة القديمة إن كانت تعمل
         self.stop(install_id)
 
         env = os.environ.copy()
 
-        # معلومات المصنع
         env["FACTORY_INSTALL_ID"] = str(
             install_id
         )
@@ -107,13 +95,12 @@ class ProcessManager:
             directory.absolute()
         )
 
-        # Tepthon package موجود داخل مجلد التنصيب
-        # لذلك نضيف المجلد الأب إلى PYTHONPATH
-        env["PYTHONPATH"] = str(
-            directory.parent.absolute()
+        env["PYTHONPATH"] = (
+            str(directory.absolute())
+            + os.pathsep
+            + env.get("PYTHONPATH", "")
         )
 
-        # Session الخاصة بالحساب
         session_path = str(
             session_file.absolute()
         )
@@ -121,7 +108,6 @@ class ProcessManager:
         env["SESSION"] = session_path
         env["TEPTHON_SESSION"] = session_path
 
-        # إعدادات Tepthon
         api_id = os.getenv("API_ID", "")
         api_hash = os.getenv("API_HASH", "")
         bot_token = os.getenv("BOT_TOKEN", "")
@@ -139,7 +125,6 @@ class ProcessManager:
         if owner_id:
             env["OWNER_ID"] = owner_id
 
-        # Redis
         env["REDISHOST"] = os.getenv(
             "REDISHOST",
             "127.0.0.1",
@@ -150,11 +135,8 @@ class ProcessManager:
             "6379",
         )
 
-        # لا نسمح لنسخة Tepthon بأخذ PORT
-        # الخاص بالمصنع الرئيسي
         env.pop("PORT", None)
 
-        # سجل خاص بكل تنصيب
         log_path = directory / "factory.log"
 
         log_file = open(
@@ -163,28 +145,25 @@ class ProcessManager:
             encoding="utf-8",
         )
 
-        # معلومات تشخيصية
         log_file.write(
             "\n"
             "========================================\n"
             f"FACTORY INSTALL ID: {install_id}\n"
             f"ACCOUNT DIR: {directory.absolute()}\n"
             f"SESSION: {session_path}\n"
+            f"MAIN: {main_file.absolute()}\n"
             "========================================\n"
         )
 
         log_file.flush()
 
-        # تشغيل Tepthon كـ package
-        # لأن __main__.py يستخدم relative imports
         process = subprocess.Popen(
             [
                 sys.executable,
                 "-u",
-                "-m",
-                "Tepthon",
+                str(main_file),
             ],
-            cwd=directory.parent,
+            cwd=directory,
             env=env,
             stdout=log_file,
             stderr=subprocess.STDOUT,
