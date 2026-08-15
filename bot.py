@@ -486,13 +486,17 @@ def setup(dp, db, pm, sessions, owner):
 
         db.request_access(user.id)
 
-        await callback.message.edit_text(
-            "📨 <b>تم إرسال طلب الاشتراك.</b>\n\n"
-            "انتظر موافقة المطور.\n"
-            "بعد الموافقة ستتمكن من استخدام خدمة التنصيب.\n\n"
-            "👨‍💻 @SSSTlF",
-            reply_markup=paid_menu(),
-        )
+        try:
+            await callback.message.edit_text(
+                "📨 <b>تم إرسال طلب الاشتراك.</b>\n\n"
+                "انتظر موافقة المطور.\n"
+                "بعد الموافقة ستتمكن من استخدام خدمة التنصيب.\n\n"
+                "👨‍💻 @SSSTlF",
+                reply_markup=paid_menu(),
+            )
+        except Exception as e:
+            if "message is not modified" not in str(e):
+                raise
 
         try:
             await callback.bot.send_message(
