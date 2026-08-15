@@ -172,8 +172,20 @@ class ProcessManager:
         process = subprocess.Popen(
             [
                 sys.executable,
-                "-u",
-                "__main__.py",
+                "-c",
+                (
+                    "import sys,types,importlib.util;"
+                    "p='.';"
+                    "m=types.ModuleType('Tepthon');"
+                    "m.__path__=[p];"
+                    "m.__package__='Tepthon';"
+                    "sys.modules['Tepthon']=m;"
+                    "spec=importlib.util.spec_from_file_location("
+                    "'Tepthon.__main__','__main__.py');"
+                    "mod=importlib.util.module_from_spec(spec);"
+                    "sys.modules['Tepthon.__main__']=mod;"
+                    "spec.loader.exec_module(mod)"
+                ),
             ],
             cwd=directory,
             env=env,
